@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数字识别系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100">
+    <div class="flex h-screen">
+      <!-- 侧边栏 -->
+      <div class="w-64 bg-gray-800 text-white flex-shrink-0">
+        <div class="p-4 text-center text-xl font-bold border-b border-gray-700">
+          数字识别系统
+        </div>
+        <div class="py-4">
+          <a
+            href="{{ url_for('index') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'index' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-home mr-2"></i>首页
+          </a>
+          <a
+            href="{{ url_for('rec') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'rec' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-pencil mr-2"></i>在线手写识别
+          </a>
+          <a
+            href="{{ url_for('recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-cogs mr-2"></i>感知机识别
+          </a>
+          <a
+            href="{{ url_for('naive_bayes_recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'naive_bayes_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-calculator mr-2"></i>朴素贝叶斯识别
+          </a>
+          <a
+            href="{{ url_for('cnn_recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'cnn_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-braille mr-2"></i>CNN识别
+          </a>
+          <a
+            href="{{ url_for('history') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'history' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-history mr-2"></i>识别历史
+          </a>
+          <a
+            href="{{ url_for('qa') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'qa' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-comments mr-2"></i>智能问答
+          </a>
+        </div>
+      </div>
+
+      <!-- 主内容区 -->
+      <div class="flex-1 overflow-y-auto p-8">
+        <h1 class="text-3xl font-bold mb-8 text-gray-800">
+          欢迎使用数字识别系统
+        </h1>
+
+        <!-- 智能问答板块 -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 mb-8 text-white">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold mb-2">🤖 智能问答助手</h2>
+              <p class="text-blue-100 mb-4">专业指导您使用数字识别系统，解答各种问题</p>
+              <a
+                href="{{ url_for('qa') }}"
+                class="inline-block bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              >
+                开始对话
+              </a>
+            </div>
+            <div class="text-6xl opacity-20">
+              🤖
+            </div>
+          </div>
+        </div>
+
+        <!-- 模型选择板块 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+          <div
+            class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+          >
+            <h3 class="text-xl font-semibold mb-3 text-orange-600">
+              在线手写识别
+            </h3>
+            <p class="text-gray-600 mb-4">
+              CNN、朴素贝叶斯和感知机模型可供选择，模型准确率高
+            </p>
+            <a
+              href="{{ url_for('rec') }}"
+              class="inline-block bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded transition-colors"
+            >
+              进入在线手写识别
+            </a>
+          </div>
+          <div
+            class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+          >
+            <h3 class="text-xl font-semibold mb-3 text-blue-600">感知机模型</h3>
+            <p class="text-gray-600 mb-4">
+              适用于简单手写数字识别，结构简洁，训练速度快
+            </p>
+            <a
+              href="{{ url_for('recognition') }}"
+              class="btn-implemented inline-block bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              进入感知机识别
+            </a>
+          </div>
+
+          <div
+            class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+          >
+            <h3 class="text-xl font-semibold mb-3 text-green-600">
+              朴素贝叶斯模型
+            </h3>
+            <p class="text-gray-600 mb-4">
+              基于概率统计的识别模型，准确率高于感知机（85%-90%）
+            </p>
+            <a
+              href="{{ url_for('naive_bayes_recognition') }}"
+              class="btn-implemented inline-block bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            >
+              进入朴素贝叶斯识别
+            </a>
+          </div>
+
+          <div
+            class="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow"
+          >
+            <h3 class="text-xl font-semibold mb-3 text-purple-600">CNN模型</h3>
+            <p class="text-gray-600 mb-4">
+              卷积神经网络，提取空间特征能力强，准确率最高（95%+）
+            </p>
+            <a
+              href="{{ url_for('cnn_recognition') }}"
+              class="btn-implemented inline-block bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded"
+            >
+              进入CNN识别
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .sidebar-btn-active {
+        background-color: #4a5568;
+      }
+      .btn-not-implemented {
+        background-color: #cbd5e0;
+        cursor: not-allowed;
+        opacity: 0.7;
+      }
+      .btn-implemented {
+        transition: all 0.3s;
+      }
+    </style>
+  </body>
+</html>

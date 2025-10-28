@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数字识别系统-历史记录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100">
+    <div class="flex h-screen">
+      <!-- 侧边栏 -->
+      <div class="w-64 bg-gray-800 text-white flex-shrink-0">
+        <div class="p-4 text-center text-xl font-bold border-b border-gray-700">
+          数字识别系统
+        </div>
+        <div class="py-4">
+          <a
+            href="{{ url_for('index') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'index' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-home mr-2"></i>首页
+          </a>
+          <a
+            href="{{ url_for('rec') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'rec' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-pencil mr-2"></i>在线手写识别
+          </a>
+          <a
+            href="{{ url_for('recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-cogs mr-2"></i>感知机识别
+          </a>
+          <a
+            href="{{ url_for('naive_bayes_recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'naive_bayes_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-calculator mr-2"></i>朴素贝叶斯识别
+          </a>
+          <a
+            href="{{ url_for('cnn_recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'cnn_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-braille mr-2"></i>CNN识别
+          </a>
+          <a
+            href="{{ url_for('history') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'history' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-history mr-2"></i>识别历史
+          </a>
+        </div>
+      </div>
+
+      <!-- 主内容区 -->
+      <div class="flex-1 overflow-y-auto p-8">
+        <div class="flex justify-between items-center mb-8">
+          <h1 class="text-3xl font-bold text-gray-800">识别历史记录</h1>
+          <button
+            onclick="clearHistory()"
+            class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+          >
+            <i class="fa fa-trash mr-1"></i> 清空历史
+          </button>
+        </div>
+
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  模型类型
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  识别结果
+                </th>
+                <th
+                  class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  时间
+                </th>
+              </tr>
+            </thead>
+            <tbody id="historyTable" class="bg-white divide-y divide-gray-200">
+              <!-- 历史记录将通过JS动态加载 -->
+              <tr>
+                <td colspan="3" class="px-6 py-8 text-center text-gray-500">
+                  暂无历史记录
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 加载历史记录
+      function loadHistory() {
+        const history = JSON.parse(
+          localStorage.getItem("recognitionHistory") || "[]"
+        );
+        const tableBody = document.getElementById("historyTable");
+
+        if (history.length === 0) {
+          tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="3" class="px-6 py-8 text-center text-gray-500">暂无历史记录</td>
+                    </tr>
+                `;
+          return;
+        }
+
+        // 按时间倒序排列
+        history.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+        let html = "";
+        history.forEach((item) => {
+          html += `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap">${item.model}</td>
+                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">${item.result}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-gray-500">${item.time}</td>
+                    </tr>
+                `;
+        });
+        tableBody.innerHTML = html;
+      }
+
+      // 清空历史记录
+      function clearHistory() {
+        if (confirm("确定要清空所有历史记录吗？")) {
+          localStorage.removeItem("recognitionHistory");
+          loadHistory();
+        }
+      }
+
+      // 页面加载时加载历史记录
+      window.onload = loadHistory;
+    </script>
+
+    <style>
+      .sidebar-btn-active {
+        background-color: #4a5568;
+      }
+    </style>
+  </body>
+</html>

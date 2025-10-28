@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>数字识别系统-感知机识别</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-gray-100">
+    <div class="flex h-screen">
+      <!-- 侧边栏 -->
+      <div class="w-64 bg-gray-800 text-white flex-shrink-0">
+        <div class="p-4 text-center text-xl font-bold border-b border-gray-700">
+          数字识别系统
+        </div>
+        <div class="py-4">
+          <a
+            href="{{ url_for('index') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'index' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-home mr-2"></i>首页
+          </a>
+          <a
+            href="{{ url_for('rec') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'rec' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-pencil mr-2"></i>在线手写识别
+          </a>
+          <a
+            href="{{ url_for('recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-cogs mr-2"></i>感知机识别
+          </a>
+          <a
+            href="{{ url_for('naive_bayes_recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'naive_bayes_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-calculator mr-2"></i>朴素贝叶斯识别
+          </a>
+          <a
+            href="{{ url_for('cnn_recognition') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'cnn_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-braille mr-2"></i>CNN识别
+          </a>
+          <a
+            href="{{ url_for('history') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'history' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-history mr-2"></i>识别历史
+          </a>
+          <a
+            href="{{ url_for('qa') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'qa' %}bg-gray-700{% endif %}"
+          >
+            <i class="fa fa-comments mr-2"></i>智能问答
+          </a>
+        </div>
+      </div>
+
+      <!-- 主内容区 -->
+      <div class="flex-1 overflow-y-auto p-8">
+        <h1 class="text-3xl font-bold mb-8 text-gray-800">感知机数字识别</h1>
+
+        <!-- 上传表单 -->
+        <div class="bg-white rounded-lg shadow p-6 mb-8">
+          <form
+            action="{{ url_for('process_image') }}"
+            method="POST"
+            enctype="multipart/form-data"
+          >
+            <div class="mb-4">
+              <label class="block text-gray-700 mb-2" for="image"
+                >选择图片（支持jpg、jpeg、png）</label
+              >
+              <input
+                type="file"
+                name="image"
+                id="image"
+                accept="image/jpeg, image/png"
+                class="border rounded px-3 py-2 w-full"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            >
+              <i class="fa fa-upload mr-1"></i> 上传并识别
+            </button>
+          </form>
+        </div>
+
+        <!-- 结果展示 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- 预处理图片 -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">
+              预处理结果（28x28）
+            </h3>
+            {% if preprocess_img %}
+            <div class="flex justify-center">
+              <img
+                src="data:image/png;base64,{{ preprocess_img }}"
+                alt="预处理后的图片"
+                class="border border-gray-300"
+              />
+            </div>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">请上传图片进行处理</p>
+            {% endif %}
+          </div>
+
+          <!-- 识别结果 -->
+          <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-xl font-semibold mb-4 text-gray-800">识别结果</h3>
+            {% if result %}
+            <div class="text-center py-8">
+              <p class="text-5xl font-bold text-blue-600">{{ result }}</p>
+            </div>
+            <button
+              onclick="saveRecognitionHistory('感知机', '{{ result }}')"
+              class="w-full mt-4 bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            >
+              <i class="fa fa-save mr-1"></i> 保存到历史记录
+            </button>
+            {% else %}
+            <p class="text-gray-500 text-center py-8">暂无识别结果</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- 概率分布图 -->
+        {% if probabilities %}
+        <div class="mt-8 bg-white rounded-lg shadow p-6">
+          <h3 class="text-xl font-semibold mb-4 text-gray-800">识别概率分布</h3>
+          <div class="space-y-3">
+            {% for digit in range(10) %}
+            <div class="flex items-center">
+              <div class="w-8 text-center font-semibold text-gray-700">{{ digit }}</div>
+              <div class="flex-1 mx-3">
+                <div class="bg-gray-200 rounded-full h-6 relative">
+                  <div 
+                    class="bg-blue-500 h-6 rounded-full transition-all duration-500 ease-out"
+                    style="width: {{ (probabilities[digit|string] * 100)|round(1) }}%"
+                  ></div>
+                  <div class="absolute inset-0 flex items-center justify-center text-xs font-medium text-gray-700">
+                    {{ (probabilities[digit|string] * 100)|round(1) }}%
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          <div class="mt-4 text-sm text-gray-600">
+            <p>最高概率：数字 <span class="font-bold text-blue-600">{{ result }}</span> ({{ (probabilities[result|string] * 100)|round(1) }}%)</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <script>
+      // 保存识别记录到localStorage
+      function saveRecognitionHistory(model, result) {
+        const history = JSON.parse(
+          localStorage.getItem("recognitionHistory") || "[]"
+        );
+        const timestamp = new Date().toLocaleString();
+        history.push({
+          model: model,
+          result: result,
+          time: timestamp,
+        });
+        localStorage.setItem("recognitionHistory", JSON.stringify(history));
+        alert("已保存到历史记录！");
+      }
+    </script>
+
+    <style>
+      .sidebar-btn-active {
+        background-color: #4a5568;
+      }
+    </style>
+  </body>
+</html>

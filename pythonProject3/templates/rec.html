@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>手写数字识别板</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+    />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      .loading {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #f3f4f6;
+        border-top: 2px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      .hidden {
+        display: none;
+      }
+      /* 确保容器充满高度 */
+      .h-full {
+        height: 100%;
+      }
+
+      .min-h-\[600px\] {
+        min-height: 600px;
+      }
+
+      /* 平滑过渡效果 */
+      .transition-all {
+        transition: all 0.3s ease;
+      }
+
+      /* 图片预览区域优化 */
+      #output {
+        max-width: 120px;
+        max-height: 120px;
+        object-fit: contain;
+      }
+      body {
+        font-family: "Microsoft YaHei", sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f6f9;
+      }
+
+      .main-content {
+        flex: 1;
+        padding: 20px;
+        text-align: center;
+      }
+
+      h2 {
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      #canvas {
+        border: 3px solid #333;
+        border-radius: 10px;
+        background-color: black; /* 改为黑色背景 */
+        cursor: crosshair;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      #preview {
+        margin-top: 20px;
+        border: 2px dashed #aaa;
+        padding: 10px;
+        display: inline-block;
+        background-color: white;
+        border-radius: 8px;
+      }
+
+      .sidebar-btn {
+        transition: all 0.3s ease;
+        border-left: 3px solid transparent;
+      }
+
+      .sidebar-btn:hover {
+        border-left-color: #007bff;
+      }
+
+      .sidebar-btn.bg-gray-700 {
+        border-left-color: #007bff;
+        background: linear-gradient(90deg, #374151, #4b5563);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="flex h-screen">
+      <!-- 侧边栏 -->
+      <div class="w-64 bg-gray-800 text-white flex-shrink-0">
+        <div class="p-4 text-center text-xl font-bold border-b border-gray-700">
+          数字识别系统
+        </div>
+        <div class="py-4">
+          <a
+            href="{{ url_for('index') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'index' %}bg-gray-700{% endif %}"
+          >
+            <i class="fas fa-home mr-2"></i>首页
+          </a>
+          <a
+            href="{{ url_for('perp') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fas fa-brain mr-2"></i>感知机识别
+          </a>
+          <a
+            href="{{ url_for('naive_1') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'naive_bayes_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fas fa-chart-bar mr-2"></i>朴素贝叶斯识别
+          </a>
+          <a
+            href="{{ url_for('cnn_1') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'cnn_recognition' %}bg-gray-700{% endif %}"
+          >
+            <i class="fas fa-network-wired mr-2"></i>CNN识别
+          </a>
+          <a
+            href="{{ url_for('history') }}"
+            class="sidebar-btn block px-4 py-3 hover:bg-gray-700 {% if request.endpoint == 'history' %}bg-gray-700{% endif %}"
+          >
+            <i class="fas fa-history mr-2"></i>识别历史
+          </a>
+        </div>
+
+        <!-- 侧边栏底部信息 -->
+        <div class="absolute bottom-0 w-64 p-4 border-t border-gray-700">
+          <div class="text-center text-sm text-gray-400">
+            <p>手写数字识别系统</p>
+            <p class="text-xs mt-1">基于多种机器学习算法</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 主内容区域 -->
+      <div class="flex-1 flex">
+        <!-- 左侧：画布区域 -->
+        <div class="flex-1 p-4">
+          <div
+            class="bg-white rounded-2xl shadow-xl p-8 h-full min-h-[600px] flex flex-col"
+          >
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">
+              <i class="fas fa-paint-brush mr-3 text-purple-600"></i>绘图区域
+            </h3>
+
+            <!-- 画布容器 - 充满可用空间 -->
+            <div class="flex-1 flex flex-col items-center justify-center mb-6">
+              <!-- 居中的画布 -->
+              <div>
+                <canvas
+                  id="canvas"
+                  width="400"
+                  height="400"
+                  class="border-2 border-gray-300 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 bg-white"
+                ></canvas>
+              </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="flex justify-center gap-3 flex-wrap">
+              <button
+                onclick="clearCanvas()"
+                class="bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg text-sm"
+              >
+                <i class="fas fa-eraser mr-2"></i>清空画布
+              </button>
+              <button
+                onclick="saveImage()"
+                class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg text-sm"
+              >
+                <i class="fas fa-download mr-2"></i>导出图像
+              </button>
+              <button
+                onclick="recognizeDigit()"
+                class="bg-purple-500 hover:bg-purple-600 text-white px-6 py-3 rounded-lg transition-all duration-300 transform hover:scale-105 shadow-md hover:shadow-lg text-sm"
+              >
+                <i class="fas fa-search mr-2"></i>识别数字
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右侧：图片显示区域 -->
+        <div class="flex-1 p-4">
+          <div
+            class="bg-white rounded-2xl shadow-xl p-8 h-full min-h-[600px] flex flex-col"
+          >
+            <h3 class="text-2xl font-bold text-gray-800 mb-6">
+              <i class="fas fa-image mr-3 text-blue-600"></i>图像预览与识别
+            </h3>
+
+            <!-- 图像预览区域 -->
+            <div class="mb-8">
+              <div
+                class="bg-gray-50 p-6 rounded-xl shadow-inner border border-gray-200"
+              >
+                <h4
+                  class="text-lg font-semibold text-gray-700 mb-4 text-center"
+                >
+                  <i class="fas fa-eye mr-2 text-green-500"></i>实时预览
+                </h4>
+                <div id="preview" class="text-center">
+                  <div
+                    class="border-2 border-dashed border-gray-300 rounded-lg p-4 bg-white transition-all duration-300 hover:border-green-400"
+                  >
+                    <img
+                      id="output"
+                      src=""
+                      alt="绘制的图像将显示在这里"
+                      width="120"
+                      height="120"
+                      class="mx-auto rounded"
+                    />
+                  </div>
+                  <p class="text-sm text-gray-500 mt-3">画布内容将同步显示</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 识别结果区域 -->
+            <div class="flex-1">
+              <!-- 识别结果内容 - 紧凑版本 -->
+              <div id="result" class="space-y-2">
+                <div class="grid grid-cols-2 gap-2">
+                  <div
+                    class="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-2 rounded-lg text-center shadow-sm"
+                  >
+                    <div class="text-xs opacity-90">感知机模型</div>
+                    <div id="perceptron-result" class="text-base font-bold">
+                      -
+                    </div>
+                  </div>
+                  <div
+                    class="bg-gradient-to-r from-green-500 to-green-600 text-white p-2 rounded-lg text-center shadow-sm"
+                  >
+                    <div class="text-xs opacity-90">朴素贝叶斯</div>
+                    <div id="naive-bayes-result" class="text-base font-bold">
+                      -
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="bg-gradient-to-r from-purple-500 to-purple-600 text-white p-2 rounded-lg text-center shadow-sm"
+                >
+                  <div class="text-xs opacity-90">CNN模型</div>
+                  <div id="cnn-result" class="text-base font-bold">-</div>
+                  <div id="cnn-confidence" class="text-xs opacity-80 mt-0.5">
+                    置信度: -
+                  </div>
+                </div>
+                <div
+                  class="bg-gradient-to-r from-orange-500 to-orange-600 text-white p-2 rounded-lg text-center shadow-sm"
+                >
+                  <div class="text-xs opacity-90">最终识别结果</div>
+                  <div id="final-result" class="text-lg font-bold">-</div>
+                </div>
+              </div>
+
+              <!-- 加载状态 - 紧凑版本 -->
+              <div id="loading" class="hidden text-center mt-2">
+                <div
+                  class="inline-flex items-center justify-center bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs"
+                >
+                  <div
+                    class="loading mr-1"
+                    style="width: 12px; height: 12px"
+                  ></div>
+                  <span class="font-medium">AI正在分析中...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+
+      let drawing = false;
+      let lastX = 0;
+      let lastY = 0;
+
+      // 鼠标/触摸事件处理
+      function startDrawing(e) {
+        drawing = true;
+        const pos = getMousePos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+        ctx.beginPath();
+        ctx.moveTo(lastX, lastY);
+      }
+
+      function draw(e) {
+        if (!drawing) return;
+
+        const pos = getMousePos(e);
+        ctx.lineTo(pos.x, pos.y);
+        ctx.stroke();
+
+        // 实时更新预览
+        updatePreview();
+      }
+
+      function stopDrawing() {
+        drawing = false;
+      }
+
+      function getMousePos(e) {
+        const rect = canvas.getBoundingClientRect();
+        let x, y;
+
+        if (e.type.includes("touch")) {
+          x = e.touches[0].clientX - rect.left;
+          y = e.touches[0].clientY - rect.top;
+        } else {
+          x = e.clientX - rect.left;
+          y = e.clientY - rect.top;
+        }
+
+        return { x, y };
+      }
+
+      // 实时更新预览
+      function updatePreview() {
+        const dataURL = canvas.toDataURL("image/png");
+        document.getElementById("output").src = dataURL;
+      }
+
+      // 初始化画布 - 黑底白字版本
+      function initCanvas() {
+        ctx.lineWidth = 20;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "#FFFFFF"; // 改为白色画笔
+        ctx.fillStyle = "#000000"; // 改为黑色背景
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // 清空画布 - 黑底白字版本
+      function clearCanvas() {
+        ctx.fillStyle = "#000000"; // 改为黑色背景
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#FFFFFF"; // 重置为白色画笔
+
+        // 清空预览
+        document.getElementById("output").src = "";
+
+        // 隐藏结果
+        document.getElementById("result").classList.add("hidden");
+        document.getElementById("loading").classList.add("hidden");
+      }
+
+      // 导出为图片
+      function saveImage() {
+        const dataURL = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.download = "handwritten-digit.png";
+        link.href = dataURL;
+        link.click();
+      }
+
+      // 识别数字函数
+      async function recognizeDigit() {
+        // 检查画布是否为空
+        if (isCanvasBlank()) {
+          alert("请先在画布上书写数字");
+          return;
+        }
+
+        const dataURL = canvas.toDataURL("image/png");
+        const resultDiv = document.getElementById("result");
+        const loadingDiv = document.getElementById("loading");
+
+        // 显示加载状态
+        loadingDiv.classList.remove("hidden");
+        resultDiv.classList.add("hidden");
+
+        try {
+          const response = await fetch("/api/online-recognize", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              image: dataURL,
+            }),
+          });
+
+          const data = await response.json();
+
+          // 隐藏加载状态
+          loadingDiv.classList.add("hidden");
+
+          if (data.success) {
+            // 更新识别结果
+            updateResults(data);
+
+            // 显示结果区域
+            resultDiv.classList.remove("hidden");
+          } else {
+            showError(data.error);
+          }
+        } catch (error) {
+          console.error("识别请求失败:", error);
+          loadingDiv.classList.add("hidden");
+          showError("网络请求失败，请检查后端服务");
+        }
+      }
+
+      // 更新结果显示
+      function updateResults(data) {
+        const predictions = data.predictions;
+
+        // 感知机结果
+        const perceptronElem = document.getElementById("perceptron-result");
+        perceptronElem.textContent =
+          predictions.perceptron !== -1 ? predictions.perceptron : "失败";
+        perceptronElem.className =
+          predictions.perceptron !== -1
+            ? "text-lg font-bold"
+            : "text-lg font-bold text-red-500";
+
+        // 朴素贝叶斯结果
+        const naiveBayesElem = document.getElementById("naive-bayes-result");
+        naiveBayesElem.textContent =
+          predictions.naive_bayes !== -1 ? predictions.naive_bayes : "失败";
+        naiveBayesElem.className =
+          predictions.naive_bayes !== -1
+            ? "text-lg font-bold"
+            : "text-lg font-bold text-red-500";
+
+        // CNN结果
+        const cnnElem = document.getElementById("cnn-result");
+        const confidenceElem = document.getElementById("cnn-confidence");
+        cnnElem.textContent = predictions.cnn !== -1 ? predictions.cnn : "失败";
+        cnnElem.className =
+          predictions.cnn !== -1
+            ? "text-lg font-bold"
+            : "text-lg font-bold text-red-500";
+
+        if (predictions.cnn_confidence) {
+          confidenceElem.textContent = `置信度: ${predictions.cnn_confidence}%`;
+          // 根据置信度设置颜色
+          if (predictions.cnn_confidence > 80) {
+            confidenceElem.className = "text-xs opacity-80 mt-1 text-green-500";
+          } else if (predictions.cnn_confidence > 60) {
+            confidenceElem.className =
+              "text-xs opacity-80 mt-1 text-yellow-500";
+          } else {
+            confidenceElem.className = "text-xs opacity-80 mt-1 text-red-500";
+          }
+        } else {
+          confidenceElem.textContent = "置信度: -";
+        }
+
+        // 最终结果
+        const finalElem = document.getElementById("final-result");
+        finalElem.textContent =
+          data.final_result !== -1 ? data.final_result : "识别失败";
+        finalElem.className =
+          data.final_result !== -1
+            ? "text-xl font-bold text-green-600"
+            : "text-xl font-bold text-red-600";
+      }
+
+      // 显示错误
+      function showError(message) {
+        alert("识别错误: " + message);
+      }
+
+      // 检查画布是否为空 - 修复黑底白字版本
+      function isCanvasBlank() {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+
+        // 检查所有像素是否都是黑色 (RGBA: 0, 0, 0, 255)
+        for (let i = 0; i < data.length; i += 4) {
+          // 如果发现任何非黑色像素（R, G, B 不是 0），或者 Alpha 通道不是 255
+          if (
+            data[i] !== 0 ||
+            data[i + 1] !== 0 ||
+            data[i + 2] !== 0 ||
+            data[i + 3] !== 255
+          ) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      // 事件监听器
+      function setupEventListeners() {
+        // 鼠标事件
+        canvas.addEventListener("mousedown", startDrawing);
+        canvas.addEventListener("mousemove", draw);
+        canvas.addEventListener("mouseup", stopDrawing);
+        canvas.addEventListener("mouseleave", stopDrawing);
+
+        // 触摸事件（支持移动设备）
+        canvas.addEventListener("touchstart", (e) => {
+          e.preventDefault();
+          startDrawing(e);
+        });
+        canvas.addEventListener("touchmove", (e) => {
+          e.preventDefault();
+          draw(e);
+        });
+        canvas.addEventListener("touchend", (e) => {
+          e.preventDefault();
+          stopDrawing();
+        });
+
+        // 防止滚动
+        document.body.addEventListener(
+          "touchstart",
+          (e) => {
+            if (e.target === canvas) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
+        document.body.addEventListener(
+          "touchend",
+          (e) => {
+            if (e.target === canvas) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
+        document.body.addEventListener(
+          "touchmove",
+          (e) => {
+            if (e.target === canvas) {
+              e.preventDefault();
+            }
+          },
+          { passive: false }
+        );
+      }
+
+      // 初始化
+      function init() {
+        initCanvas();
+        setupEventListeners();
+      }
+
+      // 页面加载完成后初始化
+      document.addEventListener("DOMContentLoaded", function () {
+        init();
+      });
+    </script>
+  </body>
+</html>
